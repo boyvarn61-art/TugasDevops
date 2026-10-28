@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registrasi Pengunjung - Tugas Individu jQuery</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f3d3e;
+      --bg-deep: #0a2b2c;
+      --paper: #f1f4f2;
+      --ink: #14262a;
+      --muted: #5b6f72;
+      --accent: #f2b134;
+      --ok: #1f8a5b;
+      --no: #c0392b;
+      --line: #cfd9d6;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+      background: radial-gradient(circle at 20% 10%, var(--bg) 0%, var(--bg-deep) 70%);
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .wrap { width: 100%; max-width: 420px; }
+
+    .ticket {
+      background: var(--paper);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+    }
+    .ticket-head {
+      background: var(--accent);
+      padding: 1.1rem 1.5rem;
+      border-bottom: 2px dashed var(--bg-deep);
+    }
+    .ticket-head h1 { margin: 0; font-size: 1.35rem; letter-spacing: .2px; }
+    .ticket-head p { margin: .25rem 0 0; font-size: .92rem; }
+
+    form { padding: 1.5rem; }
+    .field { margin-bottom: 1.1rem; }
+    label { display: block; font-weight: 600; margin-bottom: .35rem; }
+    input {
+      width: 100%;
+      padding: .7rem .85rem;
+      font-size: 1rem;
+      border: 1.5px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus-visible {
+      outline: none;
+      border-color: var(--bg);
+      box-shadow: 0 0 0 3px rgba(15, 61, 62, .2);
+    }
+    input.invalid { border-color: var(--no); }
+    .error { display: block; min-height: 1.1rem; margin-top: .3rem; font-size: .85rem; color: var(--no); }
+
+    .actions { display: flex; gap: .75rem; margin-top: .4rem; }
+    button {
+      flex: 1;
+      padding: .75rem 1rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid var(--bg);
+      transition: transform .1s, background .15s;
+    }
+    button:active { transform: scale(.97); }
+    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    #btn-proses { background: var(--bg); color: #fff; }
+    #btn-proses:hover { background: var(--bg-deep); }
+    #btn-clear { background: transparent; color: var(--bg); }
+    #btn-clear:hover { background: rgba(15, 61, 62, .08); }
+
+    #hasil {
+      display: none;
+      margin: 0 1.5rem 1.5rem;
+      padding: .85rem 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      border-left: 5px solid;
+    }
+    #hasil.boleh { background: #e3f4ec; border-color: var(--ok); color: #14573a; }
+    #hasil.tidak { background: #fbe7e4; border-color: var(--no); color: #8a2418; }
+
+    footer { margin-top: 1rem; text-align: center; font-size: .85rem; color: #b8cfcc; }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="ticket">
+      <div class="ticket-head">
+        <h1>Registrasi Pengunjung</h1>
+        <p>Pengunjung berusia 27 tahun ke atas boleh masuk.</p>
+      </div>
+
+      <form id="form-registrasi" novalidate>
+        <div class="field">
+          <label for="nama">Nama</label>
+          <input type="text" id="nama" placeholder="Ketik nama" autocomplete="off">
+          <span class="error" id="nama-error"></span>
+        </div>
+        <div class="field">
+          <label for="usia">Usia</label>
+          <input type="number" id="usia" placeholder="Ketik usia" min="0" max="120" inputmode="numeric">
+          <span class="error" id="usia-error"></span>
+        </div>
+        <div class="actions">
+          <button type="submit" id="btn-proses">Proses</button>
+          <button type="button" id="btn-clear">Clear</button>
+        </div>
+      </form>
+
+      <div id="hasil" role="status" aria-live="polite"></div>
+    </div>
+
+    <footer>Ramadhan Saleh Siregar &middot; NPM 248160031</footer>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      var BATAS_USIA = 27;
+
+      function resetError() {
+        $('.error').text('');
+        $('#nama, #usia').removeClass('invalid');
+      }
+
+      // Tombol PROSES (juga jalan saat tekan Enter)
+      $('#form-registrasi').on('submit', function (e) {
+        e.preventDefault();
+        resetError();
+        $('#hasil').hide();
+
+        var nama = $('#nama').val().trim();
+        var usiaText = $('#usia').val().trim();
+        var usia = Number(usiaText);
+        var valid = true;
+
+        if (nama === '') {
+          $('#nama').addClass('invalid');
+          $('#nama-error').text('Nama harus diisi.');
+          valid = false;
+        }
+        if (usiaText === '' || isNaN(usia) || usia < 0) {
+          $('#usia').addClass('invalid');
+          $('#usia-error').text('Usia harus diisi dengan angka yang valid.');
+          valid = false;
+        }
+        if (!valid) {
+          $(nama === '' ? '#nama' : '#usia').focus();
+          return;
+        }
+
+        var pesan, kelas;
+        if (usia >= BATAS_USIA) {
+          pesan = 'HELLO, ' + nama.toUpperCase() + '\nANDA BOLEH MASUK';
+          kelas = 'boleh';
+        } else {
+          pesan = 'HELLO, ' + nama.toUpperCase() + '\nANDA TIDAK BOLEH MASUK';
+          kelas = 'tidak';
+        }
+
+        // Dialog ALERT sesuai permintaan client
+        alert(pesan);
+
+        // Ringkasan hasil di halaman
+        $('#hasil')
+          .removeClass('boleh tidak')
+          .addClass(kelas)
+          .text(pesan.replace('\n', ' - '))
+          .fadeIn(250);
+      });
+
+      // Tombol CLEAR: hapus isi textfield nama & usia
+      $('#btn-clear').on('click', function () {
+        $('#nama, #usia').val('');
+        resetError();
+        $('#hasil').hide();
+        $('#nama').focus();
+      });
+    });
+  </script>
+</body>
+</html>
