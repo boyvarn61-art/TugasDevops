@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kalkulator Bangun Ruang - jQuery</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <style>
+    /* ==========================================================
+       Variabel warna
+       ========================================================== */
+    :root {
+      --paper: #f5f7fb;
+      --grid:  #dde4f0;
+      --ink:   #14213d;
+      --muted: #5a6785;
+      --blue:  #2447d6;
+      --mark:  #ffd23f;
+      --err:   #c62828;
+      --ok:    #1b7f4b;
+      --card:  #ffffff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #0f1626;
+        --grid:  #1a2440;
+        --ink:   #e8edf8;
+        --muted: #9aa7c7;
+        --blue:  #7f9cff;
+        --mark:  #ffd23f;
+        --err:   #ff8a80;
+        --ok:    #6fdc9f;
+        --card:  #17213a;
+      }
+    }
+
+    /* ==========================================================
+       Dasar halaman
+       ========================================================== */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px 16px 48px;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    .app {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.7rem, 5vw, 2.4rem);
+    }
+
+    .sub {
+      margin: 0 0 20px;
+      color: var(--muted);
+    }
+
+    /* ==========================================================
+       Tab pilihan bangun
+       ========================================================== */
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      padding: 8px 14px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      color: var(--ink);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .tab:hover {
+      background: var(--mark);
+      color: #14213d;
+    }
+
+    .tab.active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .tab:focus-visible,
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    /* ==========================================================
+       Kartu
+       ========================================================== */
+    .card {
+      position: relative;
+      margin-bottom: 16px;
+      padding: 20px;
+      border: 2px solid var(--ink);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: 5px 5px 0 var(--ink);
+    }
+
+    .card h2 {
+      margin: 0 0 4px;
+      font-family: Georgia, serif;
+      font-size: 1.4rem;
+    }
+
+    .hint {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    /* ==========================================================
+       Form input
+       ========================================================== */
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid var(--muted);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .field input:focus {
+      border-color: var(--blue);
+    }
+
+    .field.invalid input {
+      border-color: var(--err);
+    }
+
+    .field.valid input {
+      border-color: var(--ok);
+    }
+
+    .err {
+      display: none;
+      margin-top: 4px;
+      color: var(--err);
+      font-size: 0.88rem;
+    }
+
+    /* ==========================================================
+       Tombol
+       ========================================================== */
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      background: var(--blue);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    /* ==========================================================
+       Pesan notifikasi
+       ========================================================== */
+    #alert-box {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    #alert-box.bad {
+      background: rgba(198, 40, 40, 0.12);
+      color: var(--err);
+    }
+
+    #alert-box.good {
+      background: rgba(27, 127, 75, 0.14);
+      color: var(--ok);
+    }
+
+    /* ==========================================================
+       Hasil perhitungan
+       ========================================================== */
+    #status {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .res {
+      padding: 14px;
+      border: 2px dashed var(--muted);
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .res.live {
+      border-style: solid;
+      border-color: var(--blue);
+      background: linear-gradient(transparent 62%, rgba(255, 210, 63, 0.35) 62%);
+    }
+
+    .res small {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+    }
+
+    .res .num {
+      font-family: Georgia, serif;
+      font-size: clamp(1.3rem, 4.5vw, 1.9rem);
+      font-weight: 700;
+      word-break: break-all;
+    }
+
+    .res .unit {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    #rumus {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    #rumus b {
+      color: var(--ink);
+    }
+
+    /* ==========================================================
+       Responsif & aksesibilitas
+       ========================================================== */
+    @media (max-width: 520px) {
+      .results {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <h1>Kalkulator Bangun Ruang</h1>
+    <p class="sub">Pilih bangun, isi ukuran, dan luas permukaan serta volume langsung dihitung.</p>
+
+    <nav class="tabs" id="tabs" aria-label="Pilih bangun ruang"></nav>
+
+    <!-- Form input -->
+    <section class="card" id="form-card">
+      <h2 id="shape-title"></h2>
+      <p class="hint" id="shape-hint"></p>
+
+      <form id="calc-form" novalidate>
+        <div id="fields"></div>
+        <div class="actions">
+          <button type="submit" class="btn">Hitung</button>
+          <button type="button" class="btn ghost" id="btn-reset">Reset</button>
+        </div>
+      </form>
+
+      <div id="alert-box" role="alert"></div>
+    </section>
+
+    <!-- Hasil -->
+    <section class="card" id="result-card" aria-live="polite">
+      <p id="status">Isi semua ukuran untuk melihat hasil.</p>
+
+      <div class="results">
+        <div class="res" id="box-luas">
+          <small>Luas permukaan</small>
+          <span class="num" id="out-luas">-</span>
+          <span class="unit">satuan²</span>
+        </div>
+        <div class="res" id="box-vol">
+          <small>Volume</small>
+          <span class="num" id="out-vol">-</span>
+          <span class="unit">satuan³</span>
+        </div>
+      </div>
+
+      <p id="rumus"></p>
+    </section>
+  </main>
+
+  <script>
+    $(function () {
+      'use strict';
+
+      /* ========================================================
+         Konstanta & state
+         ======================================================== */
+      var PI = Math.PI;
+      var PESAN_DEFAULT = 'Isi semua ukuran untuk melihat hasil.';
+      var currentShape = 'kubus';
+
+      /* ========================================================
+         Data bangun ruang
+         Setiap bangun punya: nama, petunjuk, field input,
+         fungsi hitung, dan teks rumus [luas, volume].
+         ======================================================== */
+      var shapes = {
+        kubus: {
+          nama: 'Kubus',
+          hint: 'Semua rusuk sama panjang.',
+          fields: [
+            { id: 's', label: 'Panjang rusuk (s)' }
+          ],
+          hitung: function (v) {
+            return {
+              luas: 6 * v.s * v.s,
+              vol: Math.pow(v.s, 3)
+            };
+          },
+          rumus: ['6 × s²', 's³']
+        },
+
+        balok: {
+          nama: 'Balok',
+          hint: 'Tiga ukuran: panjang, lebar, tinggi.',
+          fields: [
+            { id: 'p', label: 'Panjang (p)' },
+            { id: 'l', label: 'Lebar (l)' },
+            { id: 't', label: 'Tinggi (t)' }
+          ],
+          hitung: function (v) {
+            return {
+              luas: 2 * (v.p * v.l + v.p * v.t + v.l * v.t),
+              vol: v.p * v.l * v.t
+            };
+          },
+          rumus: ['2 × (pl + pt + lt)', 'p × l × t']
+        },
+
+        tabung: {
+          nama: 'Tabung',
+          hint: 'Alas dan tutup berbentuk lingkaran.',
+          fields: [
+            { id: 'r', label: 'Jari-jari (r)' },
+            { id: 't', label: 'Tinggi (t)' }
+          ],
+          hitung: function (v) {
+            return {
+              luas: 2 * PI * v.r * (v.r + v.t),
+              vol: PI * v.r * v.r * v.t
+            };
+          },
+          rumus: ['2πr (r + t)', 'π × r² × t']
+        },
+
+        kerucut: {
+          nama: 'Kerucut',
+          hint: 'Garis pelukis dihitung otomatis: s = √(r² + t²).',
+          fields: [
+            { id: 'r', label: 'Jari-jari (r)' },
+            { id: 't', label: 'Tinggi (t)' }
+          ],
+          hitung: function (v) {
+            var garisPelukis = Math.sqrt(v.r * v.r + v.t * v.t);
+            return {
+              luas: PI * v.r * (v.r + garisPelukis),
+              vol: PI * v.r * v.r * v.t / 3
+            };
+          },
+          rumus: ['πr (r + s)', '⅓ × π × r² × t']
+        },
+
+        bola: {
+          nama: 'Bola',
+          hint: 'Cukup satu ukuran: jari-jari.',
+          fields: [
+            { id: 'r', label: 'Jari-jari (r)' }
+          ],
+          hitung: function (v) {
+            return {
+              luas: 4 * PI * v.r * v.r,
+              vol: 4 / 3 * PI * Math.pow(v.r, 3)
+            };
+          },
+          rumus: ['4 × π × r²', '4/3 × π × r³']
+        },
+
+        limas: {
+          nama: 'Limas Segi Empat',
+          hint: 'Alas persegi. Tinggi sisi tegak dihitung otomatis.',
+          fields: [
+            { id: 'a', label: 'Sisi alas (a)' },
+            { id: 't', label: 'Tinggi limas (t)' }
+          ],
+          hitung: function (v) {
+            var tinggiSisiTegak = Math.sqrt(Math.pow(v.a / 2, 2) + v.t * v.t);
+            return {
+              luas: v.a * v.a + 2 * v.a * tinggiSisiTegak,
+              vol: v.a * v.a * v.t / 3
+            };
+          },
+          rumus: ['a² + 2 × a × tinggi sisi tegak', '⅓ × a² × t']
+        }
+      };
+
+      /* ========================================================
+         Fungsi bantu
+         ======================================================== */
+
+      // Format angka ala Indonesia (1.234,56)
+      function formatAngka(n) {
+        return n.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+      }
+
+      // Ambil isi input sebagai teks bersih (koma desimal -> titik)
+      function bacaTeks($input) {
+        return $.trim($input.val()).replace(',', '.');
+      }
+
+      /* ========================================================
+         Validasi
+         ======================================================== */
+
+      // Mengembalikan pesan error, atau null jika input valid
+      function cekField($input) {
+        var raw = bacaTeks($input);
+
+        if (raw === '')            return 'Wajib diisi.';
+        if (isNaN(Number(raw)))    return 'Harus berupa angka.';
+        if (Number(raw) <= 0)      return 'Harus lebih besar dari 0.';
+        return null;
+      }
+
+      // Tampilkan / sembunyikan pesan error pada satu field
+      function tampilkanError($input, pesanError) {
+        var $field = $input.closest('.field');
+
+        if (pesanError) {
+          $field
+            .removeClass('valid')
+            .addClass('invalid')
+            .find('.err').text(pesanError).slideDown(150);
+        } else {
+          $field
+            .removeClass('invalid')
+            .addClass('valid')
+            .find('.err').slideUp(150);
+        }
+      }
+
+      /* ========================================================
+         Animasi
+         ======================================================== */
+
+      // Angka hasil "menghitung naik" dari nilai sebelumnya
+      function animasiAngka($el, nilaiAkhir) {
+        var animLama = $el.data('anim');
+        var nilaiAwal = $el.data('val') || 0;
+        var obj = { n: nilaiAwal };
+
+        if (animLama) $(animLama).stop(true);
+        $el.data('anim', obj).data('val', nilaiAkhir);
+
+        $(obj).animate({ n: nilaiAkhir }, {
+          duration: 600,
+          step: function (now) { $el.text(formatAngka(now)); },
+          complete: function () { $el.text(formatAngka(nilaiAkhir)); }
+        });
+      }
+
+      // Efek getar saat input salah
+      function getar($el) {
+        $el.css('position', 'relative')
+          .animate({ left: -8 }, 50)
+          .animate({ left: 8 }, 50)
+          .animate({ left: -6 }, 50)
+          .animate({ left: 6 }, 50)
+          .animate({ left: 0 }, 50);
+      }
+
+      // Notifikasi singkat di bawah form
+      function tampilkanPesan(teks, jenis) {
+        $('#alert-box')
+          .stop(true, true)
+          .removeClass('good bad')
+          .addClass(jenis)
+          .text(teks)
+          .slideDown(200)
+          .delay(2500)
+          .slideUp(200);
+      }
+
+      /* ========================================================
+         Render tampilan
+         ======================================================== */
+
+      function resetHasil() {
+        $('#out-luas, #out-vol').text('-').data('val', 0);
+        $('.res').removeClass('live');
+        $('#status').text(PESAN_DEFAULT);
+        $('#rumus').empty();
+      }
+
+      function renderForm(key) {
+        var shape = shapes[key];
+        var $fields = $('#fields').empty();
+
+        $.each(shape.fields, function (i, f) {
+          $fields.append(
+            '<div class="field">' +
+              '<label for="in-' + f.id + '">' + f.label + '</label>' +
+              '<input type="text" inputmode="decimal" autocomplete="off"' +
+                ' id="in-' + f.id + '" data-key="' + f.id + '" placeholder="contoh: 5">' +
+              '<div class="err"></div>' +
+            '</div>'
+          );
+        });
+
+        $('#shape-title').text(shape.nama);
+        $('#shape-hint').text(shape.hint);
+        resetHasil();
+        $fields.find('input').first().trigger('focus');
+      }
+
+      /* ========================================================
+         Perhitungan
+         tampilError = true  -> dipanggil dari tombol Hitung
+         tampilError = false -> dipanggil saat mengetik (real-time)
+         ======================================================== */
+      function hitung(tampilError) {
+        var shape = shapes[currentShape];
+        var nilai = {};
+        var semuaValid = true;
+
+        // Validasi semua input & kumpulkan nilainya
+        $('#fields input').each(function () {
+          var $input = $(this);
+          var error = cekField($input);
+
+          if (error) {
+            semuaValid = false;
+            if (tampilError) tampilkanError($input, error);
+          } else {
+            tampilkanError($input, null);
+            nilai[$input.data('key')] = Number(bacaTeks($input));
+          }
+        });
+
+        // Ada input yang salah
+        if (!semuaValid) {
+          resetHasil();
+          if (tampilError) {
+            getar($('#form-card'));
+            tampilkanPesan('Periksa kembali: semua ukuran harus diisi dengan angka lebih dari 0.', 'bad');
+          }
+          return;
+        }
+
+        // Semua valid -> hitung dan tampilkan
+        var hasil = shape.hitung(nilai);
+
+        $('.res').addClass('live');
+        animasiAngka($('#out-luas'), hasil.luas);
+        animasiAngka($('#out-vol'), hasil.vol);
+
+        $('#status').text('Hasil untuk ' + shape.nama + ':');
+        $('#rumus')
+          .html('<b>Luas permukaan</b> = ' + shape.rumus[0] +
+                '<br><b>Volume</b> = ' + shape.rumus[1])
+          .hide()
+          .fadeIn(300);
+        $('.res').fadeTo(100, 0.5).fadeTo(250, 1);
+
+        if (tampilError) tampilkanPesan('Perhitungan berhasil.', 'good');
+      }
+
+      /* ========================================================
+         Event handler
+         ======================================================== */
+
+      // Buat tombol tab untuk tiap bangun
+      $.each(shapes, function (key, shape) {
+        $('#tabs').append(
+          '<button type="button" class="tab" data-shape="' + key + '">' + shape.nama + '</button>'
+        );
+      });
+
+      // Ganti bangun ruang
+      $('#tabs').on('click', '.tab', function () {
+        var key = $(this).data('shape');
+        if (key === currentShape) return;
+
+        currentShape = key;
+        $('.tab').removeClass('active');
+        $(this).addClass('active');
+
+        $('#form-card').stop(true, true).fadeTo(150, 0.2, function () {
+          renderForm(key);
+          $(this).fadeTo(250, 1);
+        });
+      });
+
+      // Hitung real-time setiap kali input berubah
+      $('#fields').on('input', 'input', function () {
+        var $input = $(this);
+        var sudahInvalid = $input.closest('.field').hasClass('invalid');
+
+        if (sudahInvalid && !cekField($input)) tampilkanError($input, null);
+        hitung(false);
+      });
+
+      // Validasi saat meninggalkan field
+      $('#fields').on('blur', 'input', function () {
+        tampilkanError($(this), cekField($(this)));
+      });
+
+      // Tombol Hitung
+      $('#calc-form').on('submit', function (e) {
+        e.preventDefault();
+        hitung(true);
+      });
+
+      // Tombol Reset
+      $('#btn-reset').on('click', function () {
+        $('#fields input').val('');
+        $('.field').removeClass('valid invalid').find('.err').slideUp(150);
+        resetHasil();
+        $('#alert-box').stop(true, true).hide();
+        $('#fields input').first().trigger('focus');
+      });
+
+      /* ========================================================
+         Inisialisasi
+         ======================================================== */
+      $('.tab[data-shape="' + currentShape + '"]').addClass('active');
+      renderForm(currentShape);
+    });
+  </script>
+</body>
+</html>
